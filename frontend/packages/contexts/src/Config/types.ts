@@ -94,6 +94,13 @@ export interface ClientConfig {
    * When false, HTTPS will be used for secure connections.
    */
   http_only?: boolean;
+
+  /**
+   * Set when the app runs embedded in a host application as a microfrontend. The host draws the
+   * page chrome, supplies the theme and owns the session, so the app renders only its pages under
+   * the host's mount path (`base`). Only the app's remote entry sets it.
+   */
+  embedded?: boolean;
 }
 
 /**
