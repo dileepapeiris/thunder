@@ -6,10 +6,21 @@ import {DefaultTheme, getCspNonce} from '@thunderid/design';
 import {createOxygenTheme, OxygenUIThemeProvider, HighContrastTheme} from '@wso2/oxygen-ui';
 import type {JSX, ComponentType} from 'react';
 import Head from '../components/Head';
+import {useEmbed} from '../embed/EmbedContext';
+import EmbeddedTheme from '../embed/EmbeddedTheme';
 
 export default function withTheme<P extends object>(WrappedComponent: ComponentType<P>) {
   return function WithTheme(props: P): JSX.Element {
     const {config} = useConfig();
+    const embed = useEmbed();
+
+    if (embed) {
+      return (
+        <EmbeddedTheme theme={embed.ctx.theme}>
+          <WrappedComponent {...props} />
+        </EmbeddedTheme>
+      );
+    }
 
     return (
       <OxygenUIThemeProvider
