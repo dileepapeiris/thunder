@@ -54,6 +54,18 @@ next to the existing `// Peer dep subpaths are not matched by exact string - add
 `packages/configure-resource-servers/rolldown.config.js`). Do this for every subpath actually imported by the package's
 source, not just `@thunderid/logger/react`.
 
+## Embedding the Console (Microfrontend)
+
+`frontend/apps/console` also builds as a _remote_, `pnpm build:remote` → `dist-remote/remote-entry.js`, that a host
+application imports at runtime and mounts into its own page without an iframe
+([deployment guide](../docs/content/deployment/embedding-the-console.mdx)). The host contract is
+`apps/console/src/embed/contract.ts`; the entry is `apps/console/src/embed/remote-entry.tsx`. Embedded, the console
+reads `useEmbed()` from `apps/console/src/embed/EmbedContext.ts`: `App` routes under the host's `basename`,
+`DashboardLayout` renders only the page (the host draws the chrome), and `withTheme` takes the host's theme. The
+sidebar's navigation lives in `apps/console/src/configs/NavigationConfig.tsx`, and the manifest the host renders is
+derived from it, so add a page there, never in the layout or the manifest alone. The embed code imports nothing from
+`@mui/*`: the host's color mode is applied through the `data-color-scheme` attribute Oxygen themes select by.
+
 ## UI Components and Styling
 
 Read [.agent/skills/ui-development/SKILL.md](../.agent/skills/ui-development/SKILL.md) before writing or changing any
