@@ -23,6 +23,7 @@
   "scripts": {
     "analyze": "ANALYZE=true vite build",
     "build": "tsc -b && vite build",
+    "build:remote": "tsc -b && vite build --config vite.config.remote.ts",
     "clean": "pnpm clean:dist && pnpm clean:node_modules",
     "clean:dist": "rimraf dist",
     "clean:node_modules": "rimraf node_modules",
@@ -37,6 +38,7 @@
   "dependencies": {
     "@thunderid/react": "catalog:",
     "@thunderid/react-router": "catalog:",
+    "@thunderid/browser": "catalog:",
     "@dnd-kit/abstract": "0.4.0",
     "@dnd-kit/collision": "0.4.0",
     "@dnd-kit/dom": "0.4.0",

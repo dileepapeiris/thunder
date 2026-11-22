@@ -244,6 +244,9 @@ catalogs:
     '@testing-library/user-event':
       specifier: 14.6.1
       version: 14.6.1
+    '@thunderid/browser':
+      specifier: 1.23.0
+      version: 1.23.0
     '@thunderid/react':
       specifier: 1.25.0
       version: 1.25.0
@@ -834,6 +837,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: 'catalog:'
         version: 3.14.22(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
+      '@thunderid/browser':
+        specifier: 'catalog:'
+        version: 1.23.0
       '@thunderid/components':
         specifier: workspace:^
         version: link:../../packages/components
