@@ -1353,6 +1353,11 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'deployment/embedding-the-console',
+          label: 'Embed the Console',
+        },
+        {
+          type: 'doc',
           id: 'deployment/observability',
           label: 'Observability',
         },

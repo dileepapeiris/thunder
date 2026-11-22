@@ -1,0 +1,180 @@
+---
+title: Embed the Console in Your Own Console
+docType: guide
+sidebar_position: 5
+persona: iam
+description:
+  Mount the {{ProductName}} Console as a microfrontend inside a host application, under your own navigation, theme and
+  session, without an iframe.
+---
+
+# Embed the Console in Your Own Console
+
+A platform that brings several products together under one console can show the <ProductName /> Console as a section of
+its own page: the host draws the top bar and the sidebar, the Console draws its pages, and the user sees one navigation,
+one look and one sign-in. There is no iframe, so deep links, browser history, focus and scrolling behave as they do
+anywhere else on the host's page.
+
+The host and the Console stay independently built and deployed. The host imports the Console's _remote entry_ at
+runtime, reads its navigation, and mounts it into a node of its page under a path it chooses. Nothing is shared between
+the two: each keeps its own React, router and UI library, so neither side's upgrades block the other.
+
+## How it fits together
+
+```text
+┌─ Host page (https://cloud.example.com) ───────────────────────────────┐
+│  Host top bar                                                         │
+│ ┌──────────────┐ ┌──────────────────────────────────────────────────┐ │
+│ │ Host sidebar │ │ <div id="identity">                              │ │
+│ │  Compute     │ │   ThunderID Console, mounted at /identity        │ │
+│ │  Storage     │ │   (its pages only; no chrome of its own)         │ │
+│ │ ▸ Identity   │ │                                                  │ │
+│ │    Users     │ │                                                  │ │
+│ │    Groups    │ │                                                  │ │
+│ └──────────────┘ └──────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────┘
+          ▲ reads the manifest                ▲ imports remote-entry.js
+          │ for its sidebar                   │ from the Console's origin
+```
+
+The Console provides:
+
+- **A manifest**: its navigation, as sections of labelled items with paths and icon names, so the host renders it in its
+  own sidebar.
+- **`mount(el, ctx)`**: renders the Console into the host's node, under the host's mount path, and returns a handle to
+  navigate it, switch its color mode and unmount it.
+
+The host provides:
+
+- **The mount path** (`basename`), such as `/identity`.
+- **The theme** and the current **color mode**, so the Console looks like the rest of the page.
+- **Sign-in**: either the endpoints of a backend for frontend on the host's origin, so no token reaches the browser, or
+  a token the host already holds for the Console.
+
+## Build and serve the remote
+
+The Console repository builds a second artifact next to the standalone Console:
+
+```bash
+cd frontend/apps/console
+pnpm build:remote
+```
+
+This writes `dist-remote/remote-entry.js`, a plain ES module, plus the chunks it loads on demand under
+`dist-remote/assets/`. The build assumes it is served from the Console's origin under `/remotes/thunderid/`; set
+`REMOTE_BASE` to serve it elsewhere:
+
+```bash
+REMOTE_BASE=/apps/identity/ pnpm build:remote
+```
+
+Serve `dist-remote/` as static files at that path, with CORS allowing the host's origin, since the host imports the
+module cross-origin. For local development, `pnpm exec vite preview --config vite.config.remote.ts` serves it on port
+5301 with CORS enabled.
+
+The remote entry is small: it holds the manifest and `mount()`, and the Console itself loads only when the host mounts
+it.
+
+## Mount the Console
+
+A host copies the contract, `frontend/apps/console/src/embed/contract.ts`, which is the whole integration surface, and
+then:
+
+```ts
+import type {RemoteModule} from './thunderid-contract';
+
+const remote: RemoteModule = await import('https://console.example.com/remotes/thunderid/remote-entry.js');
+
+// 1. Render remote.manifest.nav in the host sidebar. Each item has an id, a label,
+//    a Lucide icon name, and a path relative to the mount path, or children.
+
+// 2. Mount the Console under the host's path.
+const handle = await remote.mount(document.getElementById('identity')!, {
+  basename: '/identity',
+  colorMode: 'light',
+  theme: hostThemeOptions,
+  config: {serverUrl: 'https://thunderid.example.com', clientId: 'CONSOLE'},
+  auth: remote.backendEndpoints('/identity'),
+  onNavigate: (path) => sidebar.setActive(path),
+});
+
+// 3. Drive it from the host.
+handle.navigate('/users'); // when the user picks a sidebar item
+handle.setColorMode('dark'); // when the host switches color mode
+handle.unmount(); // when the user leaves the section
+```
+
+`mount()` rejects, leaving nothing on the page, when the context is invalid: it needs exactly one of `auth` and `token`,
+an absolute `basename`, and a `serverUrl` and `clientId`.
+
+### The host's theme
+
+`theme` takes Material UI theme options, the same shape the Console's own `createOxygenTheme()` accepts, so a host built
+on Material UI or Oxygen UI passes its options through. Omit it to render the Console's default theme. The Console
+applies `colorMode` to its own subtree only, so the host's page is untouched, and follows `setColorMode()` afterwards.
+
+### Navigation
+
+The Console's router runs under `basename`, so `/identity/users` on the host's page is the Console's `/users`. Deep
+links and the browser's back and forward buttons work because the Console and the host share one history. The Console
+calls `onNavigate` with its current path, relative to `basename`, whenever it changes, so the host can mark the active
+sidebar item.
+
+## Sign in through the host's backend
+
+A host with a backend for frontend signs the Console in through it. The backend holds the tokens and proxies the
+Console's calls to <ProductName />, so no token reaches the browser. The host passes the backend's endpoints as `auth`;
+`backendEndpoints(basename)` builds the conventional set:
+
+| Endpoint       | Default path                   | Purpose                                                 |
+| -------------- | ------------------------------ | ------------------------------------------------------- |
+| `signIn`       | `{basename}/auth/signin`       | Starts sign-in. The Console redirects the browser here. |
+| `session`      | `{basename}/auth/session`      | Returns the signed-in user's session, or 401.           |
+| `checkSession` | `{basename}/auth/checksession` | Reports whether the session is still live.              |
+| `refresh`      | `{basename}/auth/refresh`      | Refreshes the session's tokens.                         |
+| `signOut`      | `{basename}/auth/signout`      | Ends the session at the backend and at <ProductName />. |
+| `proxy`        | `{basename}/proxy`             | Forwards an API call with the session's token attached. |
+
+These are the endpoints the <ProductName /> JavaScript SDKs' backend mode expects. See the SDK documentation for the
+backend contract, or build the backend with `@thunderid/express` or `@thunderid/node`, which mount it for you. Set
+`checkSessionInterval` (seconds) to have the Console poll `checkSession`, so a sign-out elsewhere on the host signs the
+Console out promptly; otherwise it checks when the page regains focus.
+
+## Sign in with a token the host holds
+
+A host without a backend hands the Console a token it already holds for it, exchanged for the Console's client through
+RFC 8693 token exchange:
+
+```ts
+const handle = await remote.mount(node, {
+  basename: '/identity',
+  colorMode: 'light',
+  config: {serverUrl: 'https://thunderid.example.com', clientId: 'CONSOLE'},
+  token: {
+    accessToken,
+    expiresAt, // milliseconds since the epoch
+    scopes: ['openid', 'profile', 'email', 'system'],
+    issuerUrl: 'https://thunderid.example.com',
+    renew: async () => exchangeAgain(), // called a minute before expiry
+  },
+});
+```
+
+The Console signs nobody in. It uses the token as its session, kept in the browser's session storage, and asks the host
+for a fresh one through `renew()` before it expires. When the host's `renew()` fails, the Console tries again after 30
+seconds. Unmounting clears the session.
+
+:::warning The token reaches the browser in this mode. Prefer a backend when the host has one. :::
+
+## What the standalone Console keeps doing
+
+The standalone Console is unchanged: embedding is only switched on by the remote entry, and the standalone build never
+includes it. The same contract is meant for every <ProductName /> app that becomes embeddable, so a host that embeds the
+Console can embed the next app the same way.
+
+## Limits
+
+- The Console's sidebar is the host's responsibility. The manifest gives the host the full navigation, including nested
+  groups, but the host decides what to show.
+- The host cannot switch the Console's organization unit; the Console's own switcher does that.
+- The remote is served by whoever hosts the Console. The <ProductName /> server distribution does not serve it yet.
