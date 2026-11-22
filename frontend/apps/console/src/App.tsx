@@ -8,6 +8,8 @@ import {ProtectedRoute} from '@thunderid/react-router';
 import {lazy, Suspense, type JSX} from 'react';
 import {BrowserRouter, Navigate, Outlet, Route, Routes} from 'react-router';
 import RouteConfig, {ROUTE_SEGMENTS} from './configs/RouteConfig';
+import {useEmbed} from './embed/EmbedContext';
+import EmbedRouterBridge from './embed/EmbedRouterBridge';
 import DashboardLayout from './layouts/DashboardLayout';
 import FullScreenLayout from './layouts/FullScreenLayout';
 
@@ -174,8 +176,12 @@ const UserTypesListPage = lazy(() => import('@thunderid/configure-user-types/pag
 const ViewUserTypePage = lazy(() => import('@thunderid/configure-user-types/pages/ViewUserTypePage'));
 
 export default function App(): JSX.Element {
+  // Embedded in a host, the console lives under the host's mount path instead of its build base.
+  const embed = useEmbed();
+
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter basename={embed?.ctx.basename ?? import.meta.env.BASE_URL}>
+      <EmbedRouterBridge />
       <RoutesProvider paths={RouteConfig}>
         <ToastProvider>
           <Suspense fallback={<PageLoader />}>
