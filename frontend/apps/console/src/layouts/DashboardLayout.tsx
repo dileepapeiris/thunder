@@ -1,7 +1,7 @@
 // Copyright 2025-2026 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import {BotCogIcon, ForbiddenNotice, getInitials} from '@thunderid/components';
+import {ForbiddenNotice, getInitials} from '@thunderid/components';
 import {useCapabilitiesContext, useConfig} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {SignOutButton, User, useThunderID} from '@thunderid/react';
@@ -18,33 +18,13 @@ import {
   useSidebar,
   UserMenu,
 } from '@wso2/oxygen-ui';
-import {
-  Bot,
-  Building,
-  Group,
-  Home,
-  IdCard,
-  Languages,
-  Layers,
-  LayoutGrid,
-  ListChecks,
-  LogOut,
-  Mail,
-  MessageSquare,
-  Palette,
-  Server,
-  Settings,
-  ShieldCheck,
-  SquareArrowRightEnter,
-  UserRoundCog,
-  UsersRound,
-  Wallet,
-  Workflow,
-} from '@wso2/oxygen-ui-icons-react';
+import {LogOut, SquareArrowRightEnter} from '@wso2/oxygen-ui-icons-react';
 import {useEffect, useMemo, useState, type JSX, type ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link as NavigateLink, Outlet, useLocation, useNavigate} from 'react-router';
+import NAVIGATION, {type NavEntry} from '../configs/NavigationConfig';
 import RouteConfig from '../configs/RouteConfig';
+import {useEmbed} from '../embed/EmbedContext';
 
 const ICON_BUTTON_SX = {
   minWidth: 40,
@@ -150,7 +130,23 @@ function SidebarPreference({collapsed}: {collapsed: boolean}): null {
   return null;
 }
 
+/**
+ * Embedded in a host application, the host draws the top bar, the sidebar and the footer, so only
+ * the page content renders here.
+ */
+function EmbeddedLayout(): ReactNode {
+  return (
+    <Box component="main" sx={{p: 3, width: '100%'}}>
+      <Outlet />
+    </Box>
+  );
+}
+
 export default function DashboardLayout({collapseSidebar = false}: DashboardLayoutProps): ReactNode {
+  return useEmbed() ? <EmbeddedLayout /> : <StandaloneLayout collapseSidebar={collapseSidebar} />;
+}
+
+function StandaloneLayout({collapseSidebar = false}: DashboardLayoutProps): ReactNode {
   const {clearSession, discovery} = useThunderID();
   const {isTrustedIssuerGenericOidc, getTrustedIssuerClientId, getClientUrl, config} = useConfig();
   const {t} = useTranslation();
@@ -195,193 +191,21 @@ export default function DashboardLayout({collapseSidebar = false}: DashboardLayo
     });
   };
 
-  const appRoutes: NavCategory[] = useMemo(
-    () => [
-      {
-        routes: [
-          {
-            id: 'home',
-            text: t('navigation:pages.home'),
-            icon: <Home />,
-            path: RouteConfig.home.list(),
-          },
-        ],
-      },
-      {
-        category: t('navigation:categories.resources'),
-        routes: [
-          {
-            id: 'applications',
-            resource: 'app',
-            text: t('navigation:pages.applications'),
-            icon: <LayoutGrid />,
-            path: RouteConfig.applications.list(),
-          },
-          {
-            id: 'resource-servers',
-            resource: 'rs',
-            text: t('navigation:pages.resourceServers', 'Resource servers'),
-            icon: <Server />,
-            path: RouteConfig.resourceServers.list(),
-          },
-          {
-            id: 'authorization-detail-types',
-            resource: 'authzdetail',
-            text: t('navigation:pages.authorizationDetailTypes', 'Intents'),
-            icon: <ListChecks />,
-            path: RouteConfig.authorizationDetailTypes.list(),
-          },
-        ],
-      },
-      {
-        category: t('navigation:categories.identities'),
-        routes: [
-          {
-            id: 'users',
-            resource: 'user',
-            text: t('navigation:pages.users'),
-            icon: <UsersRound />,
-            path: RouteConfig.users.list(),
-          },
-          {
-            id: 'agents',
-            resource: 'agent',
-            text: t('navigation:pages.agents', 'Agents'),
-            icon: <Bot />,
-            path: RouteConfig.agents.list(),
-          },
-          {
-            id: 'groups',
-            resource: 'group',
-            text: t('navigation:pages.groups'),
-            icon: <Group />,
-            path: RouteConfig.groups.list(),
-          },
-          {
-            id: 'roles',
-            resource: 'role',
-            text: t('navigation:pages.roles'),
-            icon: <ShieldCheck />,
-            path: RouteConfig.roles.list(),
-          },
-          {
-            id: 'user-types',
-            resource: 'usertype',
-            text: t('navigation:pages.userTypes'),
-            icon: <UserRoundCog />,
-            path: RouteConfig.userTypes.list(),
-          },
-          {
-            id: 'agent-types',
-            resource: 'agenttype',
-            text: t('navigation:pages.agentTypes', 'Agent types'),
-            icon: <BotCogIcon />,
-            path: RouteConfig.agentTypes.list(),
-          },
-        ],
-      },
-      {
-        category: t('navigation:categories.configure'),
-        routes: [
-          {
-            id: 'organization-units',
-            resource: 'ou',
-            text: t('navigation:pages.organizationUnits'),
-            icon: <Building />,
-            path: RouteConfig.organizationUnits.list(),
-          },
-          {
-            id: 'flows',
-            resource: 'flow',
-            text: t('navigation:pages.flows'),
-            icon: <Workflow />,
-            path: RouteConfig.flows.list(),
-          },
-          {
-            id: 'connections',
-            resource: 'connection',
-            text: t('navigation:pages.connections'),
-            icon: <Layers />,
-            path: RouteConfig.connections.list(),
-          },
-          {
-            id: 'verifiable-credentials',
-            text: t('navigation:pages.verifiableCredentials'),
-            icon: <Wallet />,
-            children: [
-              {
-                id: 'credentials',
-                resource: 'vc',
-                text: t('navigation:pages.credentials'),
-                icon: <IdCard />,
-                path: RouteConfig.verifiableCredentials.list(),
-              },
-              {
-                id: 'presentations',
-                resource: 'vc',
-                text: t('navigation:pages.presentations'),
-                icon: <ShieldCheck />,
-                path: RouteConfig.verifiablePresentations.list(),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        category: t('navigation:categories.customize'),
-        routes: [
-          {
-            id: 'design',
-            resource: 'design',
-            text: t('navigation:pages.design', 'Design'),
-            icon: <Palette />,
-            path: RouteConfig.design.list(),
-          },
-          {
-            id: 'notifications',
-            text: t('navigation:pages.notifications', 'Notifications'),
-            icon: <Mail />,
-            children: [
-              {
-                id: 'email-templates',
-                resource: 'notificationtemplate',
-                text: t('navigation:pages.emailTemplates', 'Email templates'),
-                icon: <Mail />,
-                path: RouteConfig.notificationTemplates.channel('email'),
-              },
-              {
-                id: 'sms-templates',
-                resource: 'notificationtemplate',
-                text: t('navigation:pages.smsTemplates', 'SMS templates'),
-                icon: <MessageSquare />,
-                path: RouteConfig.notificationTemplates.channel('sms'),
-              },
-            ],
-          },
-          {
-            id: 'translations',
-            resource: 'i18n',
-            text: t('navigation:pages.translations'),
-            icon: <Languages />,
-            path: RouteConfig.translations.list(),
-          },
-        ],
-      },
-      {
-        category: t('navigation:categories.system'),
-        routes: [
-          {
-            id: 'settings',
-            resource: 'serverconfig',
-            text: t('navigation:pages.settings'),
-            icon: <Settings />,
-            path: RouteConfig.settings.list(),
-          },
-        ],
-      },
-    ],
-    [t],
-  );
+  const appRoutes: NavCategory[] = useMemo(() => {
+    const toRoute = (entry: NavEntry): NavRoute => ({
+      id: entry.id,
+      text: t(entry.labelKey, entry.label),
+      icon: entry.icon,
+      ...(entry.path ? {path: entry.path} : {}),
+      ...(entry.resource ? {resource: entry.resource} : {}),
+      ...(entry.children ? {children: entry.children.map(toRoute)} : {}),
+    });
+
+    return NAVIGATION.map((section) => ({
+      ...(section.heading ? {category: t(section.heading.labelKey, section.heading.label)} : {}),
+      routes: section.entries.map(toRoute),
+    }));
+  }, [t]);
 
   const {can, isLoading: isLoadingCapabilities, error: capabilitiesError} = useCapabilitiesContext();
 
