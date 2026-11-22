@@ -109,9 +109,22 @@ an absolute `basename`, and a `serverUrl` and `clientId`.
 
 ### The host's theme
 
-`theme` takes Material UI theme options, the same shape the Console's own `createOxygenTheme()` accepts, so a host built
-on Material UI or Oxygen UI passes its options through. Omit it to render the Console's default theme. The Console
-applies `colorMode` to its own subtree only, so the host's page is untouched, and follows `setColorMode()` afterwards.
+`theme` takes Oxygen UI theme options, the shape the Console's own `createOxygenTheme()` accepts: colors go under
+`colorSchemes`, one palette per mode, and everything else (shape, typography, component overrides) at the top level. A
+top-level `palette` is ignored.
+
+```ts
+theme: {
+  colorSchemes: {
+    light: {palette: {primary: {main: '#2563eb'}}},
+    dark: {palette: {primary: {main: '#60a5fa'}}},
+  },
+  shape: {borderRadius: 10},
+}
+```
+
+Omit it to render the Console's default theme. The Console applies `colorMode` to its own subtree only, so the host's
+page is untouched, and follows `setColorMode()` afterwards.
 
 ### Navigation
 
