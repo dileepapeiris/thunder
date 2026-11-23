@@ -6,7 +6,7 @@ import {createRoot, type Root} from 'react-dom/client';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import type {MountContext} from '../contract';
 import {useEmbed} from '../EmbedContext';
-import {buildRuntimeConfig, renderEmbedded, type EmbedRefs} from '../render';
+import {buildRuntimeConfig, renderEmbedded, resourceEndpoints, type EmbedRefs} from '../render';
 
 const mockDispose = vi.hoisted(() => vi.fn());
 const mockInstallHostToken = vi.hoisted(() => vi.fn());
@@ -119,7 +119,13 @@ describe('buildRuntimeConfig', () => {
       public_url: 'http://issuer.example.com:8090',
       scopes: ['openid', 'system'],
     });
-    expect(config.sdk).toEqual({storage: 'sessionStorage'});
+    expect(config.sdk).toMatchObject({storage: 'sessionStorage'});
+    expect((config.sdk as {endpoints: Record<string, string>}).endpoints).toMatchObject({
+      flowExecute: 'https://thunderid.example.com/flow/execute',
+      i18n: 'https://thunderid.example.com/i18n',
+      users: 'https://thunderid.example.com/users',
+      usersMe: 'https://thunderid.example.com/users/me',
+    });
   });
 
   it('defaults the issuer port from its scheme', () => {
@@ -128,6 +134,17 @@ describe('buildRuntimeConfig', () => {
 
     expect(buildRuntimeConfig(ctx).trusted_issuer?.port).toBe(443);
     expect(buildRuntimeConfig(ctx).trusted_issuer?.http_only).toBe(false);
+  });
+});
+
+describe('resourceEndpoints', () => {
+  it('points every SDK resource endpoint at the server, without a double slash', () => {
+    const endpoints = resourceEndpoints('https://thunderid.example.com/');
+
+    expect(Object.keys(endpoints).length).toBeGreaterThanOrEqual(32);
+    expect(endpoints.agentTypes).toBe('https://thunderid.example.com/agent-types');
+    expect(endpoints.usersMeOrganizationUnits).toBe('https://thunderid.example.com/users/me/ous');
+    expect(Object.values(endpoints).every((url) => url.startsWith('https://thunderid.example.com/'))).toBe(true);
   });
 });
 
