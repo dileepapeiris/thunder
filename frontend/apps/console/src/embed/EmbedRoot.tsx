@@ -4,6 +4,7 @@
 import {useEffect, useMemo, useState, type JSX, type ReactNode} from 'react';
 import type {MountContext} from './contract';
 import {EmbedContext, type EmbedState} from './EmbedContext';
+import EmbedErrorBoundary from './EmbedErrorBoundary';
 
 /** What the mounted console hands back for the host's handle, once it renders. */
 export interface EmbedBinding {
@@ -39,7 +40,7 @@ export default function EmbedRoot({ctx, bind, setNavigate, children}: EmbedRootP
   return (
     <EmbedContext.Provider value={state}>
       <div data-color-scheme={colorMode} data-testid="thunderid-embed-root">
-        {children}
+        <EmbedErrorBoundary>{children}</EmbedErrorBoundary>
       </div>
     </EmbedContext.Provider>
   );
