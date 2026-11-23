@@ -23,6 +23,53 @@ export interface EmbedRefs {
 const toUrl = (value: string): URL => new URL(value);
 
 /**
+ * The SDK's resource-server endpoints and their default paths. With a host token, the SDK's base
+ * URL is the token's issuer, so every resource call is pointed back at the server the console
+ * manages, the way the console's trusted-issuer deployment does for a few of them.
+ */
+const RESOURCE_ENDPOINTS: Record<string, string> = {
+  agentTypes: '/agent-types',
+  agents: '/agents',
+  applications: '/applications',
+  authorizationDetailTypes: '/authorization-detail-types',
+  clientRegistrations: '/oauth2/dcr/register',
+  configurationVersions: '/configuration-versions',
+  connections: '/connections',
+  credentialConfigurations: '/openid4vci/credential-configurations',
+  design: '/design',
+  export: '/export',
+  flowExecute: '/flow/execute',
+  flowMeta: '/flow/meta',
+  flows: '/flows',
+  gateways: '/gateways',
+  groups: '/groups',
+  i18n: '/i18n',
+  import: '/import',
+  notificationTemplates: '/notification-templates',
+  organizationUnits: '/organization-units',
+  presentationDefinitions: '/openid4vp/presentation-definitions',
+  projects: '/projects',
+  resourceServers: '/resource-servers',
+  roles: '/roles',
+  secrets: '/secrets',
+  serverConfig: '/server-config',
+  userTypes: '/user-types',
+  users: '/users',
+  usersMe: '/users/me',
+  usersMeCredentials: '/users/me/update-credentials',
+  usersMeMeta: '/users/me/meta',
+  usersMeOrganizationUnits: '/users/me/ous',
+  variables: '/variables',
+};
+
+/** Every resource-server endpoint, resolved under `serverUrl`. */
+export function resourceEndpoints(serverUrl: string): Record<string, string> {
+  const base: string = serverUrl.replace(/\/+$/, '');
+
+  return Object.fromEntries(Object.entries(RESOURCE_ENDPOINTS).map(([key, path]) => [key, `${base}${path}`]));
+}
+
+/**
  * The runtime configuration the console reads when a host mounts it, built from what the host
  * handed over. Sign-in through the host's backend and the host's token both go to the SDK through
  * `sdk`, which the config HOC merges on top of its defaults.
@@ -72,8 +119,9 @@ export function buildRuntimeConfig(ctx: MountContext): ProductConfig {
             ...(ctx.auth.checkSessionInterval ? {session: {checkInterval: ctx.auth.checkSessionInterval}} : {}),
           }
         : {}),
-      // The host's token is seeded into session storage, so the SDK must read its session there.
-      ...(ctx.token ? {storage: 'sessionStorage'} : {}),
+      // The host's token is seeded into session storage, so the SDK must read its session there, and
+      // the SDK's resource calls go to the server rather than to the token's issuer.
+      ...(ctx.token ? {endpoints: resourceEndpoints(ctx.config.serverUrl), storage: 'sessionStorage'} : {}),
     },
   };
 }
