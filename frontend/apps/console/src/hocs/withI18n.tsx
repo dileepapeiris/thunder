@@ -20,6 +20,10 @@ await i18next.use(initReactI18next).init({
   interpolation: {
     escapeValue: false,
   },
+  // Re-render translated components when a bundle is added after they first rendered: the server's
+  // translations arrive after the first paint, and a page that opened before them, such as a flow
+  // form, would otherwise keep showing raw keys until something else re-rendered it.
+  react: {bindI18nStore: 'added'},
   debug: import.meta.env.DEV,
 });
 
